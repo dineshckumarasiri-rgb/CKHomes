@@ -70,7 +70,15 @@ try:
     svc = get_service()
     svc.initialize()
 except Exception as e:
-    st.error(str(e)); st.info("Add your Google service account details in Streamlit Cloud → App settings → Secrets, then restart the app."); st.stop()
+    message = str(e)
+    st.error(message)
+    if "429" in message or "Quota exceeded" in message:
+        st.info("Google Sheets is temporarily rate-limiting requests. Wait about one minute, then reboot the app once. Avoid repeatedly refreshing the page.")
+    elif "credentials" in message.lower() or "invalid_grant" in message.lower():
+        st.info("Check Streamlit Cloud → App settings → Secrets, then restart the app.")
+    else:
+        st.info("Check the Google Sheet name, service-account access, and worksheet setup.")
+    st.stop()
 
 with st.sidebar:
     st.markdown("<div class='brand'>🏠 CEEKAY Homes</div><p style='color:#94a3b8'>Management Console</p>", unsafe_allow_html=True)
