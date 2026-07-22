@@ -14,14 +14,122 @@ st.set_page_config(page_title="CEEKAY Homes", page_icon="🏠", layout="wide", i
 
 CSS = """
 <style>
-.block-container{padding-top:1.25rem;max-width:1500px}.stApp{background:#f5f7fb}
-[data-testid="stSidebar"]{background:#0f172a}.st-emotion-cache-1cypcdb{color:white}
-.brand{font-size:1.35rem;font-weight:800;letter-spacing:.02em}.muted{color:#64748b}
-.card{background:white;border:1px solid #e5e7eb;border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
-.kpi{font-size:2rem;font-weight:800;margin-top:6px}.label{font-size:.85rem;color:#64748b;font-weight:600}
-.hero{background:linear-gradient(135deg,#0f172a,#1f2937);color:white;padding:24px;border-radius:22px;margin-bottom:18px}
-div[data-testid="stMetric"]{background:white;border:1px solid #e5e7eb;padding:14px;border-radius:16px}
-.stButton>button{border-radius:10px;font-weight:700}.stTextInput input,.stNumberInput input,.stSelectbox div[data-baseweb="select"]>div{border-radius:10px}
+.block-container{
+    padding-top:1.25rem;
+    max-width:1500px;
+}
+
+.stApp{
+    background:#f5f7fb;
+}
+
+/* Sidebar background */
+section[data-testid="stSidebar"]{
+    background:#0f172a !important;
+}
+
+/* Sidebar text */
+section[data-testid="stSidebar"] *{
+    color:#f8fafc !important;
+}
+
+/* Sidebar secondary text */
+section[data-testid="stSidebar"] .stCaption,
+section[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+section[data-testid="stSidebar"] p{
+    color:#cbd5e1 !important;
+}
+
+/* Navigation radio labels */
+section[data-testid="stSidebar"] div[role="radiogroup"] label{
+    color:#f8fafc !important;
+    border-radius:10px;
+    padding:4px 8px;
+}
+
+/* Selected navigation item */
+section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked){
+    background:#1e293b !important;
+}
+
+/* Radio circles */
+section[data-testid="stSidebar"] div[role="radiogroup"] svg{
+    color:#f8fafc !important;
+    fill:#f8fafc !important;
+}
+
+/* Sidebar divider */
+section[data-testid="stSidebar"] hr{
+    border-color:#334155 !important;
+}
+
+/* Logout button */
+section[data-testid="stSidebar"] .stButton > button{
+    background:#f8fafc !important;
+    color:#0f172a !important;
+    border:none !important;
+}
+
+section[data-testid="stSidebar"] .stButton > button *{
+    color:#0f172a !important;
+}
+
+.brand{
+    font-size:1.35rem;
+    font-weight:800;
+    letter-spacing:.02em;
+    color:#ffffff !important;
+}
+
+.muted{
+    color:#64748b;
+}
+
+.card{
+    background:white;
+    border:1px solid #e5e7eb;
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 8px 24px rgba(15,23,42,.05);
+}
+
+.kpi{
+    font-size:2rem;
+    font-weight:800;
+    margin-top:6px;
+}
+
+.label{
+    font-size:.85rem;
+    color:#64748b;
+    font-weight:600;
+}
+
+.hero{
+    background:linear-gradient(135deg,#0f172a,#1f2937);
+    color:white;
+    padding:24px;
+    border-radius:22px;
+    margin-bottom:18px;
+}
+
+div[data-testid="stMetric"]{
+    background:white;
+    border:1px solid #e5e7eb;
+    padding:14px;
+    border-radius:16px;
+}
+
+.stButton > button{
+    border-radius:10px;
+    font-weight:700;
+}
+
+.stTextInput input,
+.stNumberInput input,
+.stSelectbox div[data-baseweb="select"] > div{
+    border-radius:10px;
+}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -70,15 +178,7 @@ try:
     svc = get_service()
     svc.initialize()
 except Exception as e:
-    message = str(e)
-    st.error(message)
-    if "429" in message or "Quota exceeded" in message:
-        st.info("Google Sheets is temporarily rate-limiting requests. Wait about one minute, then reboot the app once. Avoid repeatedly refreshing the page.")
-    elif "credentials" in message.lower() or "invalid_grant" in message.lower():
-        st.info("Check Streamlit Cloud → App settings → Secrets, then restart the app.")
-    else:
-        st.info("Check the Google Sheet name, service-account access, and worksheet setup.")
-    st.stop()
+    st.error(str(e)); st.info("Add your Google service account details in Streamlit Cloud → App settings → Secrets, then restart the app."); st.stop()
 
 with st.sidebar:
     st.markdown("<div class='brand'>🏠 CEEKAY Homes</div><p style='color:#94a3b8'>Management Console</p>", unsafe_allow_html=True)
