@@ -102,9 +102,9 @@ class GoogleSheetService:
             return ws
 
     def initialize(self) -> None:
+        # Connect only. Worksheets are opened lazily when a page actually needs them.
+        # This avoids exhausting Google Sheets' per-minute read quota at startup.
         self._spreadsheet()
-        for table in self.HEADERS:
-            self._worksheet(table)
 
     def invalidate(self, table: str | None = None) -> None:
         with self._lock:
