@@ -130,6 +130,23 @@ div[data-testid="stMetric"]{
 .stSelectbox div[data-baseweb="select"] > div{
     border-radius:10px;
 }
+
+/* Premium login page */
+.login-shell{min-height:78vh;display:flex;align-items:center;justify-content:center;padding:24px 12px 40px}
+.login-card{width:100%;max-width:430px;background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:32px 30px 26px;box-shadow:0 20px 50px rgba(15,23,42,.12)}
+.login-logo{width:64px;height:64px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:linear-gradient(135deg,#0f172a,#334155);font-size:30px;color:#fff}
+.login-brand{text-align:center;font-size:1.05rem;font-weight:800;letter-spacing:.08em;color:#0f172a;margin-bottom:8px}
+.login-title{text-align:center;font-size:1.9rem;font-weight:800;color:#0f172a;margin:0}
+.login-subtitle{text-align:center;color:#64748b;margin:8px 0 24px;font-size:.95rem}
+.login-footer{text-align:center;color:#94a3b8;font-size:.78rem;margin-top:18px}
+div[data-testid="stForm"]{border:0!important;padding:0!important}
+div[data-testid="stForm"] .stTextInput label{color:#334155!important;font-weight:600!important}
+div[data-testid="stForm"] .stTextInput input{min-height:48px;background:#f8fafc;border:1px solid #cbd5e1}
+div[data-testid="stForm"] .stTextInput input:focus{border-color:#0f172a;box-shadow:0 0 0 1px #0f172a}
+div[data-testid="stForm"] .stFormSubmitButton>button{min-height:48px;width:100%;background:linear-gradient(135deg,#0f172a,#334155)!important;color:#fff!important;border:none!important;border-radius:12px!important;font-weight:700!important;margin-top:8px}
+div[data-testid="stForm"] .stFormSubmitButton>button:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(15,23,42,.18)}
+div[data-testid="stForm"] .stFormSubmitButton>button *{color:#fff!important}
+
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -159,17 +176,33 @@ def rerun_ok(msg):
 
 
 def login():
-    st.markdown("<div class='hero'><div class='brand'>CEEKAY Homes</div><h1>Hostel Management System</h1><p>Secure online administration</p></div>", unsafe_allow_html=True)
-    _, c, _ = st.columns([1,1.1,1])
+    _, c, _ = st.columns([1, 1.15, 1])
     with c:
+        st.markdown(
+            """
+            <div class='login-card'>
+                <div class='login-logo'>🏠</div>
+                <div class='login-brand'>CEEKAY HOMES</div>
+                <h1 class='login-title'>Hostel Management</h1>
+                <p class='login-subtitle'>Secure access to your management console</p>
+            """,
+            unsafe_allow_html=True,
+        )
         with st.form("login"):
-            u = st.text_input("Username")
-            p = st.text_input("Password", type="password")
+            u = st.text_input("Username", placeholder="Enter your username")
+            p = st.text_input("Password", type="password", placeholder="Enter your password")
             ok = st.form_submit_button("Sign in", use_container_width=True)
         if ok:
             if u == st.secrets.get("ADMIN_USERNAME","admin") and p == st.secrets.get("ADMIN_PASSWORD","admin123"):
-                st.session_state.auth = True; st.session_state.user = u; st.rerun()
-            else: st.error("Invalid username or password")
+                st.session_state.auth = True
+                st.session_state.user = u
+                st.rerun()
+            else:
+                st.error("Invalid username or password")
+        st.markdown(
+            "<div class='login-footer'>© 2026 CEEKAY Homes · Secure cloud administration</div></div>",
+            unsafe_allow_html=True,
+        )
 
 if not st.session_state.get("auth"):
     login(); st.stop()
