@@ -440,7 +440,7 @@ elif page == "Students":
 
             c4,c5,c6=st.columns(3)
             email=c4.text_input("Email", key="student_add_email")
-            dob=c5.date_input("Date of birth",value=date(2000,1,1))
+            dob=c5.date_input("Date of birth", value=date(2000,1,1), min_value=date(1990,1,1))
             gender=c6.selectbox("Gender",["Female","Male","Other"])
 
             address=st.text_area("Address", key="student_add_address")
