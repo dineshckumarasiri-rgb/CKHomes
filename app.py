@@ -524,6 +524,62 @@ elif page == "Students":
                     )
                     rerun_ok("Student withdrawn")
 
+            st.divider()
+            st.subheader("Delete wrongly added student")
+            st.caption("Use this only when a student was added by mistake.")
+
+            with st.form("delete_student"):
+                confirm_delete = st.checkbox(
+                    f"I confirm that I want to permanently delete {s.get('full_name','this student')}"
+                )
+
+                if st.form_submit_button("Delete student permanently"):
+                    if not confirm_delete:
+                        st.error("Please confirm the deletion first.")
+                    else:
+                        related_payments = [
+                            p for p in svc.get_table("Payments")
+                            if str(p.get("student_id","")) == str(sid)
+                        ]
+
+                        if related_payments:
+                            st.error(
+                                "This student has payment records and cannot be deleted. "
+                                "Please use the withdrawal option instead."
+                            )
+                        else:
+                            if s.get("bed_id"):
+                                svc.update_record(
+                                    "Beds",
+                                    "bed_id",
+                                    s["bed_id"],
+                                    {
+                                        "status":"Available",
+                                        "student_id":"",
+                                        "student_name":"",
+                                        "updated_at":now()
+                                    }
+                                )
+
+                            for assignment in svc.get_table("RoomAssignments"):
+                                if str(assignment.get("student_id","")) == str(sid):
+                                    svc.delete_record(
+                                        "RoomAssignments",
+                                        "assignment_id",
+                                        assignment["assignment_id"]
+                                    )
+
+                            for deposit in svc.get_table("StudentDeposits"):
+                                if str(deposit.get("student_id","")) == str(sid):
+                                    svc.delete_record(
+                                        "StudentDeposits",
+                                        "deposit_id",
+                                        deposit["deposit_id"]
+                                    )
+
+                            svc.delete_record("Students","student_id",sid)
+                            rerun_ok("Student deleted permanently")
+
 elif page == "Payments":
     header("Payments", "Record, edit and delete student payments")
     students=[s for s in svc.get_table("Students") if s.get("student_status","Active")=="Active"]
