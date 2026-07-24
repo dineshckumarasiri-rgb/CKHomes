@@ -275,6 +275,22 @@ def force_lower(key):
 
 def active(rows): return [r for r in rows if str(r.get("status","Active")) not in {"Deleted","Void","Cancelled"}]
 
+def next_student_id_for_year(students, joining_year):
+    year_text = str(joining_year)
+    sequence_numbers = []
+
+    # The running number is common to every student and does not restart each year.
+    # Example: 202301, 202402, 202503.
+    for student in students:
+        student_id = str(student.get("student_id", "")).strip()
+        if len(student_id) > 4 and student_id[:4].isdigit():
+            suffix = student_id[4:]
+            if suffix.isdigit():
+                sequence_numbers.append(int(suffix))
+
+    next_number = max(sequence_numbers, default=0) + 1
+    return f"{year_text}{next_number:02d}"
+
 @st.cache_resource
 def get_service():
     if "gcp_service_account" not in st.secrets:
@@ -455,13 +471,21 @@ elif page == "Students":
             gmobile=c11.text_input("Guardian mobile", key="student_add_gmobile")
             joining=c12.date_input("Joining date")
             bedid=st.selectbox("Assign available bed",[""]+[b["bed_id"] for b in beds],format_func=lambda x:"Not assigned" if not x else next((f"{b['block_name']} / Room {b['room_no']} / Bed {b['bed_no']}" for b in beds if b['bed_id']==x),x))
+            entered_monthly_fee=st.number_input(
+                "Student monthly fee",
+                min_value=0.0,
+                max_value=1000000.0,
+                value=0.0,
+                help="For an old student, enter the monthly fee applicable when the student joined. Leave this as 0 to use the room's current monthly price."
+            )
             dep=st.number_input("Required deposit",0.0,1000000.0,0.0)
             if st.form_submit_button("Add student"):
                 if not full or not mobile: st.error("Full name and mobile are required")
                 else:
-                    sid=svc.next_student_id(); bed=next((b for b in beds if b["bed_id"]==bedid),{})
+                    sid=next_student_id_for_year(students, joining.year); bed=next((b for b in beds if b["bed_id"]==bedid),{})
                     room=svc.find_one("Rooms","room_id",str(bed.get("room_id",""))) or {}
-                    record={k:"" for k in svc.HEADERS["Students"]}; record.update({"student_id":sid,"full_name":capital(full),"name_with_initials":capital(full),"nic":capital(nic),"date_of_birth":dob.isoformat(),"gender":capital(gender),"nationality":"SRI LANKAN","mobile":str(mobile).strip(),"whatsapp":str(mobile).strip(),"email":lower_email(email),"address":capital(address),"guardian_name":capital(guardian),"guardian_mobile":str(gmobile).strip(),"university":capital(university),"degree":capital(degree),"university_reg_no":capital(reg),"joining_date":joining.isoformat(),"hostel_block":capital(bed.get("block_name","")),"block_id":bed.get("block_id",""),"room_no":bed.get("room_no",""),"room_id":bed.get("room_id",""),"bed_no":bed.get("bed_no",""),"bed_id":bedid,"monthly_fee":room.get("monthly_charge",0),"student_status":"Active","approved_at":now()})
+                    student_monthly_fee = entered_monthly_fee if entered_monthly_fee > 0 else money(room.get("monthly_charge",0))
+                    record={k:"" for k in svc.HEADERS["Students"]}; record.update({"student_id":sid,"full_name":capital(full),"name_with_initials":capital(full),"nic":capital(nic),"date_of_birth":dob.isoformat(),"gender":capital(gender),"nationality":"SRI LANKAN","mobile":str(mobile).strip(),"whatsapp":str(mobile).strip(),"email":lower_email(email),"address":capital(address),"guardian_name":capital(guardian),"guardian_mobile":str(gmobile).strip(),"university":capital(university),"degree":capital(degree),"university_reg_no":capital(reg),"joining_date":joining.isoformat(),"hostel_block":capital(bed.get("block_name","")),"block_id":bed.get("block_id",""),"room_no":bed.get("room_no",""),"room_id":bed.get("room_id",""),"bed_no":bed.get("bed_no",""),"bed_id":bedid,"monthly_fee":student_monthly_fee,"student_status":"Active","approved_at":now()})
                     svc.add_record("Students",record)
                     svc.add_record("StudentDeposits",{"deposit_id":uid("DEP"),"student_id":sid,"student_name":capital(full),"required_amount":dep,"received_amount":0,"status":"Not Paid","total_deductions":0,"refundable_amount":0,"refunded_amount":0,"balance_to_refund":0,"updated_at":now()})
                     if bedid:
