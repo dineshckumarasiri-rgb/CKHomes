@@ -31,7 +31,7 @@ class GoogleSheetService:
         "DepositRefunds": ["refund_id","deposit_id","student_id","student_name","refund_date","amount","method","reference_no","remarks","created_by","created_at"],
         "DepositDeductions": ["deduction_id","deposit_id","student_id","student_name","deduction_date","amount","reason","approved_by","created_at"],
         "Assets": ["asset_id","asset_name","category","quantity","block_name","room_no","condition","purchase_value","status","updated_at"],
-        "Withdrawals": ["withdrawal_id","student_id","student_name","withdrawal_date","reason","deposit_status","created_by","created_at"],
+        "Withdrawals": ["withdrawal_id","student_id","student_name","last_payment_amount","last_payment_month","block_id","block_name","room_id","room_no","bed_id","bed_no","withdrawal_date","reason","deposit_status","created_by","created_at"],
         "Settings": ["key","value","updated_at"],
         "Logs": ["log_id","action","entity_type","entity_id","details","performed_by","created_at"],
     }
