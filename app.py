@@ -244,6 +244,12 @@ def money(v):
     try: return float(v or 0)
     except Exception: return 0.0
 
+def capital(v):
+    return str(v or "").strip().upper()
+
+def lower_email(v):
+    return str(v or "").strip().lower()
+
 def active(rows): return [r for r in rows if str(r.get("status","Active")) not in {"Deleted","Void","Cancelled"}]
 
 @st.cache_resource
@@ -415,12 +421,12 @@ elif page == "Students":
                 else:
                     sid=svc.next_student_id(); bed=next((b for b in beds if b["bed_id"]==bedid),{})
                     room=svc.find_one("Rooms","room_id",str(bed.get("room_id",""))) or {}
-                    record={k:"" for k in svc.HEADERS["Students"]}; record.update({"student_id":sid,"full_name":full.strip().upper(),"name_with_initials":full.strip().upper(),"nic":nic.strip().upper(),"date_of_birth":dob.isoformat(),"gender":gender.upper(),"nationality":"SRI LANKAN","mobile":mobile.strip(),"whatsapp":mobile.strip(),"email":email.strip().lower(),"address":address.strip().upper(),"guardian_name":guardian.strip().upper(),"guardian_mobile":gmobile.strip(),"university":university.strip().upper(),"degree":degree.strip().upper(),"university_reg_no":reg.strip().upper(),"joining_date":joining.isoformat(),"hostel_block":str(bed.get("block_name","")).upper(),"block_id":bed.get("block_id",""),"room_no":bed.get("room_no",""),"room_id":bed.get("room_id",""),"bed_no":bed.get("bed_no",""),"bed_id":bedid,"monthly_fee":room.get("monthly_charge",0),"student_status":"Active","approved_at":now()})
+                    record={k:"" for k in svc.HEADERS["Students"]}; record.update({"student_id":sid,"full_name":capital(full),"name_with_initials":capital(full),"nic":capital(nic),"date_of_birth":dob.isoformat(),"gender":capital(gender),"nationality":"SRI LANKAN","mobile":str(mobile).strip(),"whatsapp":str(mobile).strip(),"email":lower_email(email),"address":capital(address),"guardian_name":capital(guardian),"guardian_mobile":str(gmobile).strip(),"university":capital(university),"degree":capital(degree),"university_reg_no":capital(reg),"joining_date":joining.isoformat(),"hostel_block":capital(bed.get("block_name","")),"block_id":bed.get("block_id",""),"room_no":bed.get("room_no",""),"room_id":bed.get("room_id",""),"bed_no":bed.get("bed_no",""),"bed_id":bedid,"monthly_fee":room.get("monthly_charge",0),"student_status":"Active","approved_at":now()})
                     svc.add_record("Students",record)
-                    svc.add_record("StudentDeposits",{"deposit_id":uid("DEP"),"student_id":sid,"student_name":full.strip().upper(),"required_amount":dep,"received_amount":0,"status":"Not Paid","total_deductions":0,"refundable_amount":0,"refunded_amount":0,"balance_to_refund":0,"updated_at":now()})
+                    svc.add_record("StudentDeposits",{"deposit_id":uid("DEP"),"student_id":sid,"student_name":capital(full),"required_amount":dep,"received_amount":0,"status":"Not Paid","total_deductions":0,"refundable_amount":0,"refunded_amount":0,"balance_to_refund":0,"updated_at":now()})
                     if bedid:
-                        svc.update_record("Beds","bed_id",bedid,{"status":"Occupied","student_id":sid,"student_name":full.strip().upper(),"updated_at":now()})
-                        svc.add_record("RoomAssignments",{"assignment_id":uid("ASN"),"student_id":sid,"student_name":full.strip().upper(),"block_id":bed.get("block_id"),"block_name":bed.get("block_name"),"room_id":bed.get("room_id"),"room_no":bed.get("room_no"),"bed_id":bedid,"bed_no":bed.get("bed_no"),"start_date":joining.isoformat(),"end_date":"","status":"Active","created_at":now()})
+                        svc.update_record("Beds","bed_id",bedid,{"status":"Occupied","student_id":sid,"student_name":capital(full),"updated_at":now()})
+                        svc.add_record("RoomAssignments",{"assignment_id":uid("ASN"),"student_id":sid,"student_name":capital(full),"block_id":bed.get("block_id"),"block_name":bed.get("block_name"),"room_id":bed.get("room_id"),"room_no":bed.get("room_no"),"bed_id":bedid,"bed_no":bed.get("bed_no"),"start_date":joining.isoformat(),"end_date":"","status":"Active","created_at":now()})
                     rerun_ok(f"Student added: {sid}")
     with tabs[2]:
         if not students: st.info("No students yet")
@@ -430,7 +436,7 @@ elif page == "Students":
             with st.form("edit_student", clear_on_submit=True):
                 a,b,c=st.columns(3); full=a.text_input("Full name",s.get("full_name","")); mobile=b.text_input("Mobile",s.get("mobile","")); email=c.text_input("Email",s.get("email","")); address=st.text_area("Address",s.get("address",""))
                 if st.form_submit_button("Save student changes"):
-                    svc.update_record("Students","student_id",sid,{"full_name":full.strip().upper(),"name_with_initials":full.strip().upper(),"mobile":mobile.strip(),"whatsapp":mobile.strip(),"email":email.strip().lower(),"address":address.strip().upper()}); rerun_ok("Student updated")
+                    svc.update_record("Students","student_id",sid,{"full_name":capital(full),"name_with_initials":capital(full),"mobile":str(mobile).strip(),"whatsapp":str(mobile).strip(),"email":lower_email(email),"address":capital(address)}); rerun_ok("Student updated")
             available=[b for b in svc.get_table("Beds") if b.get("status","Available")=="Available"]
             with st.form("transfer", clear_on_submit=True):
                 newbed=st.selectbox("Transfer to",[b["bed_id"] for b in available],format_func=lambda x:next((f"{b['block_name']} / Room {b['room_no']} / Bed {b['bed_no']}" for b in available if b['bed_id']==x),x)) if available else None
