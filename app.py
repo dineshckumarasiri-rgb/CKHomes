@@ -233,6 +233,23 @@ div[data-testid="stForm"] .stFormSubmitButton>button *{
     color:#fff !important;
 }
 
+/* Student entry fields: show capitals while typing */
+input[aria-label="Full name*"],
+input[aria-label="Full name"],
+input[aria-label="NIC"],
+input[aria-label="University"],
+input[aria-label="Degree"],
+input[aria-label="Registration no"],
+input[aria-label="Guardian name"],
+textarea[aria-label="Address"]{
+    text-transform:uppercase !important;
+}
+
+/* Email is always displayed in lowercase */
+input[aria-label="Email"]{
+    text-transform:lowercase !important;
+}
+
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -417,24 +434,24 @@ elif page == "Students":
         beds=[b for b in svc.get_table("Beds") if b.get("status","Available")=="Available"]
         with st.form("student_add", clear_on_submit=True):
             c1,c2,c3=st.columns(3)
-            full=c1.text_input("Full name*", key="student_add_full", on_change=force_upper, args=("student_add_full",))
-            nic=c2.text_input("NIC", key="student_add_nic", on_change=force_upper, args=("student_add_nic",))
+            full=c1.text_input("Full name*", key="student_add_full")
+            nic=c2.text_input("NIC", key="student_add_nic")
             mobile=c3.text_input("Mobile*", key="student_add_mobile")
 
             c4,c5,c6=st.columns(3)
-            email=c4.text_input("Email", key="student_add_email", on_change=force_lower, args=("student_add_email",))
+            email=c4.text_input("Email", key="student_add_email")
             dob=c5.date_input("Date of birth",value=date(2000,1,1))
             gender=c6.selectbox("Gender",["Female","Male","Other"])
 
-            address=st.text_area("Address", key="student_add_address", on_change=force_upper, args=("student_add_address",))
+            address=st.text_area("Address", key="student_add_address")
 
             c7,c8,c9=st.columns(3)
-            university=c7.text_input("University", key="student_add_university", on_change=force_upper, args=("student_add_university",))
-            degree=c8.text_input("Degree", key="student_add_degree", on_change=force_upper, args=("student_add_degree",))
-            reg=c9.text_input("Registration no", key="student_add_reg", on_change=force_upper, args=("student_add_reg",))
+            university=c7.text_input("University", key="student_add_university")
+            degree=c8.text_input("Degree", key="student_add_degree")
+            reg=c9.text_input("Registration no", key="student_add_reg")
 
             c10,c11,c12=st.columns(3)
-            guardian=c10.text_input("Guardian name", key="student_add_guardian", on_change=force_upper, args=("student_add_guardian",))
+            guardian=c10.text_input("Guardian name", key="student_add_guardian")
             gmobile=c11.text_input("Guardian mobile", key="student_add_gmobile")
             joining=c12.date_input("Joining date")
             bedid=st.selectbox("Assign available bed",[""]+[b["bed_id"] for b in beds],format_func=lambda x:"Not assigned" if not x else next((f"{b['block_name']} / Room {b['room_no']} / Bed {b['bed_no']}" for b in beds if b['bed_id']==x),x))
@@ -458,10 +475,10 @@ elif page == "Students":
             st.write(f"**Current room:** {s.get('hostel_block','')} / {s.get('room_no','')} / Bed {s.get('bed_no','')}")
             with st.form("edit_student", clear_on_submit=True):
                 a,b,c=st.columns(3)
-                full=a.text_input("Full name",s.get("full_name",""),key=f"edit_full_{sid}",on_change=force_upper,args=(f"edit_full_{sid}",))
+                full=a.text_input("Full name",s.get("full_name",""),key=f"edit_full_{sid}")
                 mobile=b.text_input("Mobile",s.get("mobile",""),key=f"edit_mobile_{sid}")
-                email=c.text_input("Email",s.get("email",""),key=f"edit_email_{sid}",on_change=force_lower,args=(f"edit_email_{sid}",))
-                address=st.text_area("Address",s.get("address",""),key=f"edit_address_{sid}",on_change=force_upper,args=(f"edit_address_{sid}",))
+                email=c.text_input("Email",s.get("email",""),key=f"edit_email_{sid}")
+                address=st.text_area("Address",s.get("address",""),key=f"edit_address_{sid}")
                 if st.form_submit_button("Save student changes"):
                     svc.update_record("Students","student_id",sid,{"full_name":capital(full),"name_with_initials":capital(full),"mobile":str(mobile).strip(),"whatsapp":str(mobile).strip(),"email":lower_email(email),"address":capital(address)}); rerun_ok("Student updated")
             available=[b for b in svc.get_table("Beds") if b.get("status","Available")=="Available"]
