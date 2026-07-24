@@ -258,7 +258,9 @@ def get_service():
 
 
 def rerun_ok(msg):
-    st.success(msg); st.cache_data.clear(); st.rerun()
+    st.session_state["_success_message"] = msg
+    st.cache_data.clear()
+    st.rerun()
 
 
 def login():
@@ -303,6 +305,9 @@ try:
     svc.initialize()
 except Exception as e:
     st.error(str(e)); st.info("Add your Google service account details in Streamlit Cloud → App settings → Secrets, then restart the app."); st.stop()
+
+if st.session_state.get("_success_message"):
+    st.success(st.session_state.pop("_success_message"))
 
 with st.sidebar:
     st.markdown("<div class='brand'>🏠 CEEKAY Homes</div><p style='color:#94a3b8'>Management Console</p>", unsafe_allow_html=True)
@@ -352,7 +357,7 @@ elif page == "Hostel":
     t1,t2,t3=st.tabs(["Blocks","Rooms","Beds"])
     with t1:
         with st.expander("Add block", expanded=False):
-            with st.form("add_block"):
+            with st.form("add_block", clear_on_submit=True):
                 a,b=st.columns(2); name=a.text_input("Block name*"); floors=b.number_input("Floors",1,20,1); address=st.text_area("Address")
                 if st.form_submit_button("Save block"):
                     if not name: st.error("Block name is required")
@@ -367,7 +372,7 @@ elif page == "Hostel":
     with t2:
         blocks=svc.get_table("HostelBlocks")
         with st.expander("Add room"):
-            with st.form("add_room"):
+            with st.form("add_room", clear_on_submit=True):
                 block=st.selectbox("Block*",[b["block_id"] for b in blocks],format_func=lambda x:next((b["block_name"] for b in blocks if b["block_id"]==x),x)) if blocks else None
                 c1,c2,c3,c4=st.columns(4); room_no=c1.text_input("Room no*"); room_type=c2.selectbox("Type",["Standard","Shared","Single","Other"]); cap=c3.number_input("Capacity",1,20,1); charge=c4.number_input("Monthly charge",0.0,1000000.0,0.0)
                 if st.form_submit_button("Save room"):
@@ -398,7 +403,7 @@ elif page == "Students":
         st.dataframe(df(rows,["student_id","full_name","mobile","university","hostel_block","room_no","bed_no","monthly_fee","student_status"]),use_container_width=True,hide_index=True)
     with tabs[1]:
         beds=[b for b in svc.get_table("Beds") if b.get("status","Available")=="Available"]
-        with st.form("student_add"):
+        with st.form("student_add", clear_on_submit=True):
             c1,c2,c3=st.columns(3); full=c1.text_input("Full name*"); nic=c2.text_input("NIC"); mobile=c3.text_input("Mobile*")
             c4,c5,c6=st.columns(3); email=c4.text_input("Email"); dob=c5.date_input("Date of birth",value=date(2000,1,1)); gender=c6.selectbox("Gender",["Female","Male","Other"])
             address=st.text_area("Address"); c7,c8,c9=st.columns(3); university=c7.text_input("University"); degree=c8.text_input("Degree"); reg=c9.text_input("Registration no")
@@ -410,24 +415,24 @@ elif page == "Students":
                 else:
                     sid=svc.next_student_id(); bed=next((b for b in beds if b["bed_id"]==bedid),{})
                     room=svc.find_one("Rooms","room_id",str(bed.get("room_id",""))) or {}
-                    record={k:"" for k in svc.HEADERS["Students"]}; record.update({"student_id":sid,"full_name":full.strip(),"name_with_initials":full.strip(),"nic":nic,"date_of_birth":dob.isoformat(),"gender":gender,"nationality":"Sri Lankan","mobile":mobile,"whatsapp":mobile,"email":email,"address":address,"guardian_name":guardian,"guardian_mobile":gmobile,"university":university,"degree":degree,"university_reg_no":reg,"joining_date":joining.isoformat(),"hostel_block":bed.get("block_name",""),"block_id":bed.get("block_id",""),"room_no":bed.get("room_no",""),"room_id":bed.get("room_id",""),"bed_no":bed.get("bed_no",""),"bed_id":bedid,"monthly_fee":room.get("monthly_charge",0),"student_status":"Active","approved_at":now()})
+                    record={k:"" for k in svc.HEADERS["Students"]}; record.update({"student_id":sid,"full_name":full.strip().upper(),"name_with_initials":full.strip().upper(),"nic":nic.strip().upper(),"date_of_birth":dob.isoformat(),"gender":gender.upper(),"nationality":"SRI LANKAN","mobile":mobile.strip(),"whatsapp":mobile.strip(),"email":email.strip().lower(),"address":address.strip().upper(),"guardian_name":guardian.strip().upper(),"guardian_mobile":gmobile.strip(),"university":university.strip().upper(),"degree":degree.strip().upper(),"university_reg_no":reg.strip().upper(),"joining_date":joining.isoformat(),"hostel_block":str(bed.get("block_name","")).upper(),"block_id":bed.get("block_id",""),"room_no":bed.get("room_no",""),"room_id":bed.get("room_id",""),"bed_no":bed.get("bed_no",""),"bed_id":bedid,"monthly_fee":room.get("monthly_charge",0),"student_status":"Active","approved_at":now()})
                     svc.add_record("Students",record)
-                    svc.add_record("StudentDeposits",{"deposit_id":uid("DEP"),"student_id":sid,"student_name":full,"required_amount":dep,"received_amount":0,"status":"Not Paid","total_deductions":0,"refundable_amount":0,"refunded_amount":0,"balance_to_refund":0,"updated_at":now()})
+                    svc.add_record("StudentDeposits",{"deposit_id":uid("DEP"),"student_id":sid,"student_name":full.strip().upper(),"required_amount":dep,"received_amount":0,"status":"Not Paid","total_deductions":0,"refundable_amount":0,"refunded_amount":0,"balance_to_refund":0,"updated_at":now()})
                     if bedid:
-                        svc.update_record("Beds","bed_id",bedid,{"status":"Occupied","student_id":sid,"student_name":full,"updated_at":now()})
-                        svc.add_record("RoomAssignments",{"assignment_id":uid("ASN"),"student_id":sid,"student_name":full,"block_id":bed.get("block_id"),"block_name":bed.get("block_name"),"room_id":bed.get("room_id"),"room_no":bed.get("room_no"),"bed_id":bedid,"bed_no":bed.get("bed_no"),"start_date":joining.isoformat(),"end_date":"","status":"Active","created_at":now()})
+                        svc.update_record("Beds","bed_id",bedid,{"status":"Occupied","student_id":sid,"student_name":full.strip().upper(),"updated_at":now()})
+                        svc.add_record("RoomAssignments",{"assignment_id":uid("ASN"),"student_id":sid,"student_name":full.strip().upper(),"block_id":bed.get("block_id"),"block_name":bed.get("block_name"),"room_id":bed.get("room_id"),"room_no":bed.get("room_no"),"bed_id":bedid,"bed_no":bed.get("bed_no"),"start_date":joining.isoformat(),"end_date":"","status":"Active","created_at":now()})
                     rerun_ok(f"Student added: {sid}")
     with tabs[2]:
         if not students: st.info("No students yet")
         else:
             sid=st.selectbox("Select student",[s["student_id"] for s in students],format_func=lambda x:next((f"{x} — {s['full_name']}" for s in students if s['student_id']==x),x)); s=next(x for x in students if x["student_id"]==sid)
             st.write(f"**Current room:** {s.get('hostel_block','')} / {s.get('room_no','')} / Bed {s.get('bed_no','')}")
-            with st.form("edit_student"):
+            with st.form("edit_student", clear_on_submit=True):
                 a,b,c=st.columns(3); full=a.text_input("Full name",s.get("full_name","")); mobile=b.text_input("Mobile",s.get("mobile","")); email=c.text_input("Email",s.get("email","")); address=st.text_area("Address",s.get("address",""))
                 if st.form_submit_button("Save student changes"):
-                    svc.update_record("Students","student_id",sid,{"full_name":full,"mobile":mobile,"email":email,"address":address}); rerun_ok("Student updated")
+                    svc.update_record("Students","student_id",sid,{"full_name":full.strip().upper(),"name_with_initials":full.strip().upper(),"mobile":mobile.strip(),"whatsapp":mobile.strip(),"email":email.strip().lower(),"address":address.strip().upper()}); rerun_ok("Student updated")
             available=[b for b in svc.get_table("Beds") if b.get("status","Available")=="Available"]
-            with st.form("transfer"):
+            with st.form("transfer", clear_on_submit=True):
                 newbed=st.selectbox("Transfer to",[b["bed_id"] for b in available],format_func=lambda x:next((f"{b['block_name']} / Room {b['room_no']} / Bed {b['bed_no']}" for b in available if b['bed_id']==x),x)) if available else None
                 tdate=st.date_input("Transfer date")
                 if st.form_submit_button("Change room"):
@@ -441,18 +446,19 @@ elif page == "Students":
                         svc.update_record("Beds","bed_id",newbed,{"status":"Occupied","student_id":sid,"student_name":s.get("full_name"),"updated_at":now()})
                         svc.update_record("Students","student_id",sid,{"hostel_block":nb.get("block_name"),"block_id":nb.get("block_id"),"room_no":nb.get("room_no"),"room_id":nb.get("room_id"),"bed_no":nb.get("bed_no"),"bed_id":newbed,"monthly_fee":room.get("monthly_charge",0)})
                         svc.add_record("RoomAssignments",{"assignment_id":uid("ASN"),"student_id":sid,"student_name":s.get("full_name"),"block_id":nb.get("block_id"),"block_name":nb.get("block_name"),"room_id":nb.get("room_id"),"room_no":nb.get("room_no"),"bed_id":newbed,"bed_no":nb.get("bed_no"),"start_date":tdate.isoformat(),"end_date":"","status":"Active","created_at":now()}); rerun_ok("Room changed")
-            with st.form("withdraw"):
+            with st.form("withdraw", clear_on_submit=True):
+                st.number_input("Current boarding fee", value=money(s.get("monthly_fee")), disabled=True)
                 wd=st.date_input("Withdrawal date"); reason=st.text_area("Reason")
                 if st.form_submit_button("Withdraw student"):
                     if s.get("bed_id"): svc.update_record("Beds","bed_id",s["bed_id"],{"status":"Available","student_id":"","student_name":"","updated_at":now()})
                     svc.update_record("Students","student_id",sid,{"student_status":"Withdrawn","withdrawal_date":wd.isoformat(),"withdrawal_reason":reason,"bed_id":"","bed_no":"","room_id":"","room_no":"","block_id":"","hostel_block":""})
-                    svc.add_record("Withdrawals",{"withdrawal_id":uid("WDR"),"student_id":sid,"student_name":s.get("full_name"),"withdrawal_date":wd.isoformat(),"reason":reason,"deposit_status":"Pending","created_by":st.session_state.user,"created_at":now()}); rerun_ok("Student withdrawn")
+                    svc.add_record("Withdrawals",{"withdrawal_id":uid("WDR"),"student_id":sid,"student_name":s.get("full_name"),"boarding_fee":money(s.get("monthly_fee")),"withdrawal_date":wd.isoformat(),"reason":reason.strip().upper(),"deposit_status":"Pending","created_by":st.session_state.user,"created_at":now()}); rerun_ok("Student withdrawn")
 
 elif page == "Payments":
     header("Payments", "Record, edit and delete student payments")
     students=[s for s in svc.get_table("Students") if s.get("student_status","Active")=="Active"]
     with st.expander("Add payment", expanded=True):
-        with st.form("pay"):
+        with st.form("pay", clear_on_submit=True):
             sid=st.selectbox("Student",[s["student_id"] for s in students],format_func=lambda x:next((f"{x} — {s['full_name']}" for s in students if s['student_id']==x),x)) if students else None
             c1,c2,c3,c4=st.columns(4); category=c1.selectbox("Category",["Monthly Fee","Registration","Other"]); month=c2.text_input("Month",datetime.now().strftime("%Y-%m")); amount=c3.number_input("Amount",0.0,10000000.0,0.0); pdate=c4.date_input("Payment date")
             c5,c6,c7=st.columns(3); method=c5.selectbox("Method",["Cash","Bank Transfer","Card","Other"]); ref=c6.text_input("Reference no"); receipt=c7.text_input("Receipt no"); remarks=st.text_area("Remarks")
@@ -475,20 +481,20 @@ elif page == "Deposits":
         sid=st.selectbox("Select student deposit",[d["student_id"] for d in deposits],format_func=lambda x:next((f"{x} — {d['student_name']}" for d in deposits if d['student_id']==x),x)); d=next(x for x in deposits if x["student_id"]==sid)
         t1,t2,t3=st.tabs(["Receive","Deduct","Refund"])
         with t1:
-            with st.form("receive_dep"):
+            with st.form("receive_dep", clear_on_submit=True):
                 amt=st.number_input("Amount received",0.0,10000000.0,0.0); dt=st.date_input("Date",key="rd"); method=st.selectbox("Method",["Cash","Bank Transfer","Other"],key="rm"); ref=st.text_input("Reference",key="rr")
                 if st.form_submit_button("Record receipt"):
                     received=money(d.get("received_amount"))+amt; required=money(d.get("required_amount")); status="Paid" if received>=required else "Partially Paid"
                     svc.update_record("StudentDeposits","student_id",sid,{"received_amount":received,"payment_date":dt.isoformat(),"payment_method":method,"payment_reference":ref,"status":status,"refundable_amount":max(0,received-money(d.get("total_deductions"))),"balance_to_refund":max(0,received-money(d.get("total_deductions"))-money(d.get("refunded_amount"))),"updated_at":now()}); rerun_ok("Deposit receipt recorded")
         with t2:
-            with st.form("deduct_dep"):
+            with st.form("deduct_dep", clear_on_submit=True):
                 amt=st.number_input("Deduction amount",0.0,10000000.0,0.0,key="da"); reason=st.text_input("Reason"); dt=st.date_input("Date",key="dd")
                 if st.form_submit_button("Add deduction"):
                     svc.add_record("DepositDeductions",{"deduction_id":uid("DED"),"deposit_id":d["deposit_id"],"student_id":sid,"student_name":d["student_name"],"deduction_date":dt.isoformat(),"amount":amt,"reason":reason,"approved_by":st.session_state.user,"created_at":now()})
                     td=money(d.get("total_deductions"))+amt; refundable=max(0,money(d.get("received_amount"))-td); balance=max(0,refundable-money(d.get("refunded_amount")))
                     svc.update_record("StudentDeposits","student_id",sid,{"total_deductions":td,"refundable_amount":refundable,"balance_to_refund":balance,"updated_at":now()}); rerun_ok("Deduction added")
         with t3:
-            with st.form("refund_dep"):
+            with st.form("refund_dep", clear_on_submit=True):
                 amt=st.number_input("Refund amount",0.0,10000000.0,0.0,key="fa"); dt=st.date_input("Date",key="fd"); method=st.selectbox("Method",["Cash","Bank Transfer","Other"],key="fm"); ref=st.text_input("Reference",key="fr")
                 if st.form_submit_button("Record refund"):
                     svc.add_record("DepositRefunds",{"refund_id":uid("REF"),"deposit_id":d["deposit_id"],"student_id":sid,"student_name":d["student_name"],"refund_date":dt.isoformat(),"amount":amt,"method":method,"reference_no":ref,"remarks":"","created_by":st.session_state.user,"created_at":now()})
@@ -498,7 +504,7 @@ elif page == "Deposits":
 elif page == "Expenses":
     header("Expenses", "Simple expense management")
     with st.expander("Add expense", expanded=True):
-        with st.form("cost"):
+        with st.form("cost", clear_on_submit=True):
             c1,c2,c3=st.columns(3); dt=c1.date_input("Date"); category=c2.selectbox("Category",["Utilities","Maintenance","Supplies","Salary","Other"]); amount=c3.number_input("Amount",0.0,10000000.0,0.0)
             c4,c5,c6=st.columns(3); desc=c4.text_input("Description"); supplier=c5.text_input("Supplier"); method=c6.selectbox("Method",["Cash","Bank Transfer","Card","Other"]); remarks=st.text_area("Remarks")
             if st.form_submit_button("Save expense"):
@@ -511,7 +517,7 @@ elif page == "Expenses":
 elif page == "Assets":
     header("Assets", "Track hostel furniture and equipment")
     with st.expander("Add asset", expanded=True):
-        with st.form("asset"):
+        with st.form("asset", clear_on_submit=True):
             c1,c2,c3=st.columns(3); name=c1.text_input("Asset name"); category=c2.text_input("Category"); qty=c3.number_input("Quantity",1,10000,1)
             c4,c5,c6=st.columns(3); block=c4.text_input("Block"); room=c5.text_input("Room"); condition=c6.selectbox("Condition",["New","Good","Fair","Damaged"]); value=st.number_input("Purchase value",0.0,10000000.0,0.0)
             if st.form_submit_button("Save asset"):
