@@ -447,12 +447,82 @@ elif page == "Students":
                         svc.update_record("Students","student_id",sid,{"hostel_block":nb.get("block_name"),"block_id":nb.get("block_id"),"room_no":nb.get("room_no"),"room_id":nb.get("room_id"),"bed_no":nb.get("bed_no"),"bed_id":newbed,"monthly_fee":room.get("monthly_charge",0)})
                         svc.add_record("RoomAssignments",{"assignment_id":uid("ASN"),"student_id":sid,"student_name":s.get("full_name"),"block_id":nb.get("block_id"),"block_name":nb.get("block_name"),"room_id":nb.get("room_id"),"room_no":nb.get("room_no"),"bed_id":newbed,"bed_no":nb.get("bed_no"),"start_date":tdate.isoformat(),"end_date":"","status":"Active","created_at":now()}); rerun_ok("Room changed")
             with st.form("withdraw", clear_on_submit=True):
-                st.number_input("Current boarding fee", value=money(s.get("monthly_fee")), disabled=True)
+                student_payments = [
+                    p for p in active(svc.get_table("Payments"))
+                    if str(p.get("student_id","")) == str(sid)
+                ]
+                student_payments.sort(
+                    key=lambda p: (
+                        str(p.get("payment_date","")),
+                        str(p.get("created_at",""))
+                    )
+                )
+                last_payment = student_payments[-1] if student_payments else {}
+                last_paid_amount = money(last_payment.get("amount")) if last_payment else money(s.get("monthly_fee"))
+                last_paid_month = str(last_payment.get("month","")) if last_payment else ""
+
+                st.number_input("Last paid amount", value=last_paid_amount, disabled=True)
+                if last_paid_month:
+                    st.caption(f"Last paid month: {last_paid_month}")
+                st.caption(
+                    f"Room details will be retained: "
+                    f"{s.get('hostel_block','')} / Room {s.get('room_no','')} / Bed {s.get('bed_no','')}"
+                )
+
                 wd=st.date_input("Withdrawal date"); reason=st.text_area("Reason")
                 if st.form_submit_button("Withdraw student"):
-                    if s.get("bed_id"): svc.update_record("Beds","bed_id",s["bed_id"],{"status":"Available","student_id":"","student_name":"","updated_at":now()})
-                    svc.update_record("Students","student_id",sid,{"student_status":"Withdrawn","withdrawal_date":wd.isoformat(),"withdrawal_reason":reason,"bed_id":"","bed_no":"","room_id":"","room_no":"","block_id":"","hostel_block":""})
-                    svc.add_record("Withdrawals",{"withdrawal_id":uid("WDR"),"student_id":sid,"student_name":s.get("full_name"),"boarding_fee":money(s.get("monthly_fee")),"withdrawal_date":wd.isoformat(),"reason":reason.strip().upper(),"deposit_status":"Pending","created_by":st.session_state.user,"created_at":now()}); rerun_ok("Student withdrawn")
+                    if s.get("bed_id"):
+                        svc.update_record(
+                            "Beds",
+                            "bed_id",
+                            s["bed_id"],
+                            {
+                                "status":"Available",
+                                "student_id":"",
+                                "student_name":"",
+                                "updated_at":now()
+                            }
+                        )
+
+                    svc.update_record(
+                        "Students",
+                        "student_id",
+                        sid,
+                        {
+                            "student_status":"Withdrawn",
+                            "withdrawal_date":wd.isoformat(),
+                            "withdrawal_reason":reason.strip().upper(),
+                            "monthly_fee":last_paid_amount
+                        }
+                    )
+
+                    for assignment in svc.get_table("RoomAssignments"):
+                        if assignment.get("student_id")==sid and assignment.get("status")=="Active":
+                            svc.update_record(
+                                "RoomAssignments",
+                                "assignment_id",
+                                assignment["assignment_id"],
+                                {
+                                    "status":"Completed",
+                                    "end_date":wd.isoformat()
+                                }
+                            )
+
+                    svc.add_record(
+                        "Withdrawals",
+                        {
+                            "withdrawal_id":uid("WDR"),
+                            "student_id":sid,
+                            "student_name":s.get("full_name"),
+                            "boarding_fee":last_paid_amount,
+                            "withdrawal_date":wd.isoformat(),
+                            "reason":reason.strip().upper(),
+                            "deposit_status":"Pending",
+                            "created_by":st.session_state.user,
+                            "created_at":now()
+                        }
+                    )
+                    rerun_ok("Student withdrawn")
 
 elif page == "Payments":
     header("Payments", "Record, edit and delete student payments")
